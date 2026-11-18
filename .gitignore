@@ -1,0 +1,23 @@
+# Build output
+build/
+dist/
+target/
+*.class
+
+# NetBeans user settings
+nbproject/private/
+nbbuild/
+nbdist/
+.nb-gradle/
+
+# IDE and OS files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Logs and crash dumps
+*.log
+hs_err_pid*
+replay_pid*
