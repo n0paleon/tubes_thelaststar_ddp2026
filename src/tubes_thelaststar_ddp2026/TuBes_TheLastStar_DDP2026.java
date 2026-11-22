@@ -1,7 +1,7 @@
 /*
  * Aplikasi Penjualan Token PLN "TokenKu"
  * Tugas Team Based Project Dasar-Dasar Pemrograman (DDP) 2026
- * Kelompok "The Last Star"
+ * Kelompok "The Last Star Tech"
  *
  * Catatan:
  * Program ini adalah simulasi yang disederhanakan, tanpa PPJ dan komponen
