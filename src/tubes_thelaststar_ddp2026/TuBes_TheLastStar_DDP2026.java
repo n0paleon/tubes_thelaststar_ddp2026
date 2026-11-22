@@ -1,296 +1,290 @@
 /*
- * aplikasi Penjualan Token PLN "TokenKu"
- * tugas Team Based Project Dasar-Dasar Pemrograman (DDP) 2026 kelompok "The Last Star"
+ * Aplikasi Penjualan Token PLN "TokenKu"
+ * Tugas Team Based Project Dasar-Dasar Pemrograman (DDP) 2026
+ * Kelompok "The Last Star"
  *
- * catatan: ini simulasi yang disederhanakan, tanpa PPJ dan komponen
- * token PLN asli. daftar token hanya berisi nomor token (tanpa tanggal
- * dan waktu) karena library yang diizinkan masih sangat sederhana.
- * seluruh kode ditulis di dalam satu method main (belum memakai OOP).
+ * Catatan:
+ * Program ini adalah simulasi yang disederhanakan, tanpa PPJ dan komponen
+ * token PLN asli. Daftar token hanya berisi nomor token (tanpa tanggal dan
+ * waktu). Seluruh kode ditulis di dalam satu method main (belum memakai OOP).
  */
 package tubes_thelaststar_ddp2026;
 
 import java.util.Scanner;
 
 /**
- * program konsol penjualan token listrik PLN.
- * @author The Last Star - Sang Bintang Yang Selalu Datang di Akhir
+ * Program konsol untuk penjualan token listrik PLN.
+ *
+ * Alur program:
+ * 1. Menu utama menampilkan tiga pilihan (Beli Token, Daftar Token, Keluar).
+ * 2. Beli Token meminta data secara berurutan: nomor meter, nama pelanggan,
+ *    golongan tarif, nominal token, lalu uang yang dibayarkan.
+ * 3. Pengguna dapat mengetik "0" di langkah mana pun (kecuali nama pelanggan)
+ *    untuk membatalkan transaksi dan kembali ke menu utama.
+ *
+ * Singkatan yang dipakai pada nama variabel:
+ * jml = jumlah, idx = indeks, maks = maksimal, trx = transaksi, adm = admin.
+ *
+ * @author The Last Star Tech - Sang Bintang Yang Selalu Datang di Akhir
  */
 public class TuBes_TheLastStar_DDP2026 {
-
     public static void main(String[] args) {
-        // scanner utama untuk membaca input keyboard.
-        // setiap input dibaca sebagai satu baris penuh dengan nextLine()
+        // Pembaca input keyboard. Semua input dibaca sebagai satu baris penuh.
         Scanner input = new Scanner(System.in);
 
-        // konfigurasi biaya admin dan tarif per kWh berdasarkan 2 jenis pelanggan (Subsidi & RTM - Rumah Tangga Mampu)
-        int admin = 2500;
-        int tarifSubsidi = 605;
-        int tarifRtm = 1352;
+        // ===== KONFIGURASI TARIF =====
 
-        // daftar token memakai array biasa.
-        // isinya hanya nomor token dan hilang saat program ditutup
+        // Biaya admin tetap yang ditambahkan ke setiap transaksi.
+        int biayaAdm = 2500;
+
+        // Tarif per kWh untuk tiap golongan pelanggan.
+        // Indeks 0 = Subsidi, indeks 1 = RTM (Rumah Tangga Mampu).
+        int[] tarifGolongan = {605, 1352};
+
+        // Nama golongan, urutannya harus sama persis dengan tarifGolongan.
+        String[] namaGolongan = {"900 VA Subsidi", "900 VA RTM"};
+
+        // Pilihan nominal token yang tersedia (dalam rupiah).
+        // Pilihan menu 1 sampai 4 dipetakan ke indeks 0 sampai 3.
+        int[] daftarNominal = {20000, 50000, 100000, 200000};
+
+        // ===== PENYIMPANAN TOKEN =====
+
+        // Daftar token disimpan di array biasa dan hilang saat program ditutup.
         int maksToken = 50;
         String[] daftarToken = new String[maksToken];
-        int jumlahToken = 0;
+        int jmlToken = 0;
 
-        // kata kunci angka yang bisa diketik di langkah mana pun saat Beli Token
-        // untuk membatalkan transaksi dan kembali ke menu utama.
-        // memakai angka "0" karena nama pelanggan boleh berisi teks apa pun,
-        // termasuk "batal"
-        String kembali = "0";
+        // Kata kunci untuk membatalkan transaksi dan kembali ke menu utama.
+        // Memakai angka "0" karena nama pelanggan boleh berisi teks apa pun,
+        // termasuk kata "batal".
+        String cmdKembali = "0";
 
-        boolean jalan = true;
-        // label pada loop utama supaya setiap langkah Beli Token bisa
-        // langsung kembali ke menu dengan "continue menuUtama"
-        menuUtama: while (jalan) {
-            // menu utama
-            System.out.println();
-            System.out.printf("""
+        // Penanda perulangan menu utama. Bernilai true saat pengguna memilih Keluar.
+        boolean keluar = false;
+
+        // ===== PERULANGAN MENU UTAMA =====
+        while (!keluar) {
+            System.out.print("""
+
                     MENU UTAMA
                     1. Beli Token
                     2. Daftar Token
                     0. Keluar
-                              
+
                     Pilih menu:\s""");
+            String pilihanMenu = input.nextLine().trim();
 
-            // baris input dibaca dulu, lalu dicek apakah berupa angka.
-            // jika bukan angka, pilihan tetap -1 dan jatuh ke default
-            String baris = input.nextLine();
-            int pilihan = -1;
-            Scanner scannerMenu = new Scanner(baris);
-            if (scannerMenu.hasNextInt()) {
-                pilihan = scannerMenu.nextInt();
-            }
+            switch (pilihanMenu) {
+            case "1" -> {
+                System.out.println("\n--- BELI TOKEN ---\n");
 
-            switch (pilihan) {
-            case 1 -> {
-                System.out.println("\n--- BELI TOKEN ---");
-                System.out.println();
+                // Penanda pembatalan. Berubah menjadi true jika pengguna mengetik
+                // kata kunci kembali di salah satu langkah. Setelah true, semua
+                // langkah berikutnya dilewati sehingga program kembali ke menu utama.
+                boolean trxBatal = false;
 
-                // nomor meter disimpan sebagai String agar angka 0 di depan
-                // tidak hilang. validasi dilakukan per karakter supaya input
-                // seperti "12345 67890" atau "+1234567890" tidak lolos
+                // ----- Langkah 1: nomor meter -----
+                // Disimpan sebagai String agar angka 0 di depan tidak hilang.
+                // Format yang diterima adalah tepat 11 karakter dan semuanya angka.
                 String noMeter = "";
-                while (true) {
+                boolean meterValid = false;
+                while (!trxBatal && !meterValid) {
                     System.out.print("Masukkan nomor meter (11 digit angka, 0 = kembali): ");
                     noMeter = input.nextLine().trim();
-                    if (noMeter.equals(kembali)) {
-                        System.out.println("\nKembali ke menu utama.");
-                        continue menuUtama;
-                    }
-
-                    boolean valid = noMeter.length() == 11;
-                    for (int i = 0; i < noMeter.length(); i++) {
-                        if (!Character.isDigit(noMeter.charAt(i))) {
-                            valid = false;
-                        }
-                    }
-                    if (valid) {
-                        break;
-                    }
-                    System.out.println("Error: nomor meter harus 11 digit angka dan tidak boleh mengandung huruf!");
-                    System.out.println();
-                }
-
-                // nama pelanggan tidak boleh kosong.
-                // di langkah ini tidak ada kata kunci kembali: apa pun yang
-                // diketik (termasuk "batal") dianggap bagian dari nama
-                String nama = "";
-                while (nama.isEmpty()) {
-                    System.out.println();
-                    System.out.print("Masukkan nama pelanggan: ");
-                    nama = input.nextLine().trim();
-                    if (nama.isEmpty()) {
-                        System.out.println("Nama tidak boleh kosong. Silakan ulang.");
+                    if (noMeter.equals(cmdKembali)) {
+                        trxBatal = true;
+                    } else if (noMeter.matches("\\d{11}")) {
+                        meterValid = true;
+                    } else {
+                        System.out.println("Error: nomor meter harus 11 digit angka!\n");
                     }
                 }
 
-                // pilih golongan tarif, hanya menerima angka 1 atau 2
-                int golongan = 0;
-                while (golongan != 1 && golongan != 2) {
-                    System.out.println();
-                    System.out.printf("""
+                // ----- Langkah 2: nama pelanggan -----
+                // Tidak boleh kosong. Langkah ini tidak punya kata kunci kembali,
+                // jadi apa pun yang diketik dianggap bagian dari nama.
+                String namaPelanggan = "";
+                while (!trxBatal && namaPelanggan.isEmpty()) {
+                    System.out.print("\nMasukkan nama pelanggan: ");
+                    namaPelanggan = input.nextLine().trim();
+                    if (namaPelanggan.isEmpty()) {
+                        System.out.println("Nama tidak boleh kosong.");
+                    }
+                }
+
+                // ----- Langkah 3: golongan tarif -----
+                // Menyimpan indeks golongan (0 = Subsidi, 1 = RTM).
+                // Nilai -1 berarti golongan belum dipilih.
+                int idxGolongan = -1;
+                while (!trxBatal && idxGolongan < 0) {
+                    System.out.print("""
+
                             Pilih golongan tarif:
                               1. 900 VA (Subsidi)
                               2. 900 VA RTM
-                                      
+
                             Pilihan (1/2, 0 = kembali):\s""");
-                    String barisGolongan = input.nextLine().trim();
-                    if (barisGolongan.equals(kembali)) {
-                        System.out.println("\nKembali ke menu utama.");
-                        continue menuUtama;
-                    }
-                    Scanner scannerGolongan = new Scanner(barisGolongan);
-                    if (scannerGolongan.hasNextInt()) {
-                        golongan = scannerGolongan.nextInt();
+                    String inputGolongan = input.nextLine().trim();
+                    if (inputGolongan.equals(cmdKembali)) {
+                        trxBatal = true;
+                    } else if (inputGolongan.equals("1")) {
+                        idxGolongan = 0;
+                    } else if (inputGolongan.equals("2")) {
+                        idxGolongan = 1;
                     } else {
-                        golongan = 0;
-                    }
-                    if (golongan != 1 && golongan != 2) {
-                        System.out.println("Golongan tidak valid. Silakan ulang.");
+                        System.out.println("Golongan tidak valid.");
                     }
                 }
 
-                // tentukan nama golongan dan tarif per kWh sesuai pilihan
-                String namaGolongan;
-                int tarif;
-                if (golongan == 1) {
-                    namaGolongan = "900 VA Subsidi";
-                    tarif = tarifSubsidi;
-                } else {
-                    namaGolongan = "900 VA RTM";
-                    tarif = tarifRtm;
-                }
+                // ----- Langkah 4: nominal token -----
+                // Menyimpan indeks nominal (0 sampai 3).
+                // Nilai -1 berarti nominal belum dipilih.
+                int idxNominal = -1;
+                while (!trxBatal && idxNominal < 0) {
+                    System.out.print("""
 
-                // pilih nominal token, diulang sampai pilihan 1 sampai 4 valid
-                int nominal = 0;
-                while (nominal == 0) {
-                    System.out.println();
-                    System.out.printf("""
                             Pilih nominal token:
                               1. 20000
                               2. 50000
                               3. 100000
                               4. 200000
-                                      
+
                             Pilihan (1-4, 0 = kembali):\s""");
-                    String barisNominal = input.nextLine().trim();
-                    if (barisNominal.equals(kembali)) {
-                        System.out.println("\nKembali ke menu utama.");
-                        continue menuUtama;
-                    }
-                    Scanner scannerNominal = new Scanner(barisNominal);
-                    int pilihanNominal = 0;
-                    if (scannerNominal.hasNextInt()) {
-                        pilihanNominal = scannerNominal.nextInt();
-                    }
-
-                    switch (pilihanNominal) {
-                    case 1 -> nominal = 20000;
-                    case 2 -> nominal = 50000;
-                    case 3 -> nominal = 100000;
-                    case 4 -> nominal = 200000;
-                    default -> System.out.println("Nominal tidak valid. Silakan ulang.");
-                    }
-                }
-
-                // total bayar adalah nominal ditambah biaya admin.
-                // jumlah kWh adalah nominal dibagi tarif per kWh
-                int totalBayar = nominal + admin;
-                double jumlahKWh = (double) nominal / tarif;
-
-                // format kWh menjadi 2 angka desimal. titik diganti koma
-                // agar hasilnya sama di semua pengaturan locale
-                String kWhTeks = String.format("%.2f", jumlahKWh).replace(".", ",");
-
-                System.out.printf("""
-
-                        RINCIAN PEMBAYARAN
-                        Golongan    : %s
-                        Tarif       : %d/kWh
-                        Nominal     : %d
-                        Admin       : %d
-                        Total Bayar : %d
-                        """, namaGolongan, tarif, nominal, admin, totalBayar);
-
-                // input uang diulang jika bukan angka atau kurang dari total bayar
-                int uangDibayar = 0;
-                while (uangDibayar < totalBayar) {
-                    System.out.println();
-                    System.out.print("Masukkan uang dibayar (0 = kembali): ");
-                    String barisUang = input.nextLine().trim();
-                    if (barisUang.equals(kembali)) {
-                        System.out.println("\nKembali ke menu utama.");
-                        continue menuUtama;
-                    }
-                    Scanner scannerUang = new Scanner(barisUang);
-                    if (scannerUang.hasNextInt()) {
-                        uangDibayar = scannerUang.nextInt();
+                    String inputNominal = input.nextLine().trim();
+                    if (inputNominal.equals(cmdKembali)) {
+                        trxBatal = true;
+                        // Input harus persis 1 digit diantara angka 1-4, selain itu otomatis masuk kondisi 'else'
+                    } else if (inputNominal.matches("[1-4]")) {
+                        // Pilihan menu dimulai dari 1, sedangkan indeks array dari 0.
+                        idxNominal = Integer.parseInt(inputNominal) - 1;
                     } else {
-                        uangDibayar = 0;
-                        System.out.println("Uang harus berupa angka. Silakan ulang.");
-                        continue;
+                        System.out.println("Nominal tidak valid.");
                     }
-                    if (uangDibayar < totalBayar) {
+                }
+
+                // ----- Langkah 5 dan seterusnya: hanya jalan jika belum dibatalkan -----
+                // Pengecekan ini juga mencegah error indeks array (misalnya
+                // tarifGolongan[-1]) ketika pengguna membatalkan lebih awal.
+                if (!trxBatal) {
+                    // Ambil data sesuai pilihan pengguna.
+                    int tarifKwh = tarifGolongan[idxGolongan];
+                    int nominal = daftarNominal[idxNominal];
+
+                    // Total bayar adalah nominal ditambah biaya admin.
+                    int totalBayar = nominal + biayaAdm;
+
+                    // Jumlah kWh adalah nominal dibagi tarif per kWh.
+                    // Hasilnya diformat 2 angka desimal, lalu titik diganti koma.
+                    String kwhTeks = String.format("%.2f", (double) nominal / tarifKwh)
+                            .replace(".", ",");
+
+                    System.out.printf("""
+
+                            RINCIAN PEMBAYARAN
+                            Golongan    : %s
+                            Tarif       : %d/kWh
+                            Nominal     : %d
+                            Admin       : %d
+                            Total Bayar : %d
+                            """, namaGolongan[idxGolongan], tarifKwh, nominal,
+                            biayaAdm, totalBayar);
+
+                    // ----- Langkah pembayaran -----
+                    // Diulang sampai uang yang dibayar cukup, atau pengguna membatalkan.
+                    // Input harus berupa angka 1 sampai 9 digit agar tidak melebihi
+                    // batas tipe int.
+                    int uangBayar = 0;
+                    while (!trxBatal && uangBayar < totalBayar) {
+                        System.out.print("\nMasukkan uang dibayar (0 = kembali): ");
+                        String inputUang = input.nextLine().trim();
+                        if (inputUang.equals(cmdKembali)) {
+                            trxBatal = true;
+                            // d{1,9} adalah pembatas agar input hanya berupa angka 0-9 dengan panjang digit 1 sampai 9
+                            // kenapa 9 digit? karena int punya batas max sekitar 2,1 milyar, kalau kita masukkan angka lebih dari itu,
+                            // program akan error. 9 digit angka terbesar adalah 999.999.999, tidak akan error.
+                        } else if (!inputUang.matches("\\d{1,9}")) {
+                            System.out.println("Uang harus berupa angka.");
+                        } else {
+                            uangBayar = Integer.parseInt(inputUang);
+                            if (uangBayar < totalBayar) {
+                                System.out.println("Uang kurang! Total bayar " + totalBayar + ".");
+                            }
+                        }
+                    }
+
+                    // ----- Struk dan token: hanya jika pembayaran selesai -----
+                    if (!trxBatal) {
+                        int kembalian = uangBayar - totalBayar;
+
+                        // Buat token acak 20 digit dengan format xxxx-xxxx-xxxx-xxxx-xxxx.
+                        // Test : XXXX-XXXX-XXXX-XXXX
+                        // Setiap digit berasal dari Math.random() dikali 10 lalu dibuang
+                        // desimalnya, sehingga hasilnya 0 sampai 9. Tanda "-" disisipkan
+                        // setelah digit ke-4, 8, 12, dan 16.
+                        String token = "";
+                        for (int i = 1; i <= 20; i++) {
+                            token += (int) (Math.random() * 10);
+                            if (i % 4 == 0 && i < 20) {
+                                token += "-";
+                            }
+                        }
+
                         System.out.printf("""
-                                Uang kurang! Total bayar %d. Silakan ulang.
-                                """, totalBayar);
+
+                                ========== STRUK TOKENKU ==========
+                                Nama        : %s
+                                No. Meter   : %s
+                                Golongan    : %s
+                                Tarif       : %d/kWh
+                                Nominal     : %d
+                                Admin       : %d
+                                Total Bayar : %d
+                                Tunai       : %d
+                                Kembalian   : %d
+                                kWh         : %s
+                                Token       : %s
+                                ===================================
+                                """, namaPelanggan, noMeter, namaGolongan[idxGolongan],
+                                tarifKwh, nominal, biayaAdm, totalBayar, uangBayar,
+                                kembalian, kwhTeks, token);
+
+                        // Simpan token ke daftar jika masih ada tempat.
+                        if (jmlToken < maksToken) {
+                            daftarToken[jmlToken] = token;
+                            jmlToken++;
+                        } else {
+                            System.out.println("Daftar token penuh, token tidak disimpan.");
+                        }
                     }
                 }
 
-                // hitung kembalian lalu buat token acak 20 digit.
-                // setiap digit dibuat dari Math.random() dikali 10 dan dibuang
-                // desimalnya sehingga hasilnya 0 sampai 9.
-                // tanda "-" disisipkan setelah digit ke-4, 8, 12, dan 16
-                int kembalian = uangDibayar - totalBayar;
-                String token = "";
-                for (int i = 1; i <= 20; i++) {
-                    int digit = (int) (Math.random() * 10);
-                    token = token + digit;
-                    if (i % 4 == 0 && i < 20) {
-                        token = token + "-";
-                    }
+                // Pesan ini dicetak sekali saja jika transaksi dibatalkan di langkah mana pun.
+                // Program kembali ke menu utama karena case "1" selesai dan perulangan
+                // while (!keluar) mengulang dari awal.
+                if (trxBatal) {
+                    System.out.println("\nKembali ke menu utama.");
                 }
-
-                System.out.printf("""
-
-                        ========== STRUK TOKENKU ==========
-                        Nama        : %s
-                        No. Meter   : %s
-                        Golongan    : %s
-                        Tarif       : %d/kWh
-                        Nominal     : %d
-                        Admin       : %d
-                        Total Bayar : %d
-                        Tunai       : %d
-                        Kembalian   : %d
-                        kWh         : %s
-                        Token       : %s
-                        ===================================
-                        """, nama, noMeter, namaGolongan, tarif, nominal, admin,
-                        totalBayar, uangDibayar, kembalian, kWhTeks, token);
-
-                // simpan token ke daftar jika masih ada tempat
-                if (jumlahToken < maksToken) {
-                    daftarToken[jumlahToken] = token;
-                    jumlahToken++;
-                } else {
-                    System.out.println("Daftar token penuh, token tidak disimpan.");
-                }
-
             }
-            case 2 -> {
-                // tampilkan semua token yang sudah tersimpan
-                System.out.printf("""
-
-                        ======= DAFTAR TOKEN =======
-                        """);
-                if (jumlahToken == 0) {
+            case "2" -> {
+                // Tampilkan semua token yang sudah tersimpan.
+                System.out.println("\n======= DAFTAR TOKEN =======");
+                if (jmlToken == 0) {
                     System.out.println("Belum ada token.");
-                    System.out.println();
-                } else {
-                    for (int i = 0; i < jumlahToken; i++) {
-                        System.out.printf("""
-                                %d. %s
-                                """, i + 1, daftarToken[i]);
-                        System.out.println();
-                    }
                 }
-                System.out.printf("""
-                        ============================
-                        """);
-
+                for (int idxToken = 0; idxToken < jmlToken; idxToken++) {
+                    System.out.println((idxToken + 1) + ". " + daftarToken[idxToken]);
+                }
+                System.out.println("============================");
             }
-            case 0 -> {
-                // hentikan perulangan menu utama
-                jalan = false;
-                System.out.println();
-                System.out.println("Terima kasih telah menggunakan TokenKu!");
+            case "0" -> {
+                // Hentikan perulangan menu utama.
+                keluar = true;
+                System.out.println("\nTerima kasih telah menggunakan TokenKu!");
             }
             default -> {
-                // pilihan menu bukan 0, 1, atau 2
-                System.out.println();
-                System.out.println("Pilihan tidak valid. Silakan coba lagi.");
+                // Pilihan menu bukan 0, 1, atau 2.
+                System.out.println("\nPilihan tidak valid. Silakan coba lagi.");
             }
             }
         }
