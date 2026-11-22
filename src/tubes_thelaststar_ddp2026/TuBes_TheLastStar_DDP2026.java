@@ -23,7 +23,7 @@ import java.util.Scanner;
  *    untuk membatalkan transaksi dan kembali ke menu utama.
  *
  * Singkatan yang dipakai pada nama variabel:
- * jml = jumlah, idx = indeks, maks = maksimal, trx = transaksi, adm = admin.
+ * jml = jumlah, maks = maksimal, trx = transaksi, adm = admin.
  *
  * @author The Last Star Tech - Sang Bintang Yang Selalu Datang di Akhir
  */
@@ -38,15 +38,9 @@ public class TuBes_TheLastStar_DDP2026 {
         int biayaAdm = 2500;
 
         // Tarif per kWh untuk tiap golongan pelanggan.
-        // Indeks 0 = Subsidi, indeks 1 = RTM (Rumah Tangga Mampu).
-        int[] tarifGolongan = {605, 1352};
-
-        // Nama golongan, urutannya harus sama persis dengan tarifGolongan.
-        String[] namaGolongan = {"900 VA Subsidi", "900 VA RTM"};
-
-        // Pilihan nominal token yang tersedia (dalam rupiah).
-        // Pilihan menu 1 sampai 4 dipetakan ke indeks 0 sampai 3.
-        int[] daftarNominal = {20000, 50000, 100000, 200000};
+        // RTM adalah singkatan dari Rumah Tangga Mampu.
+        int tarifSubsidi = 605;
+        int tarifRtm = 1352;
 
         // ===== PENYIMPANAN TOKEN =====
 
@@ -114,10 +108,12 @@ public class TuBes_TheLastStar_DDP2026 {
                 }
 
                 // ----- Langkah 3: golongan tarif -----
-                // Menyimpan indeks golongan (0 = Subsidi, 1 = RTM).
-                // Nilai -1 berarti golongan belum dipilih.
-                int idxGolongan = -1;
-                while (!trxBatal && idxGolongan < 0) {
+                // namaGolongan dan tarifKwh diisi sesuai pilihan pengguna.
+                // golonganValid menjadi true setelah pengguna memilih 1 atau 2.
+                String namaGolongan = "";
+                int tarifKwh = 0;
+                boolean golonganValid = false;
+                while (!trxBatal && !golonganValid) {
                     System.out.print("""
 
                             Pilih golongan tarif:
@@ -129,19 +125,23 @@ public class TuBes_TheLastStar_DDP2026 {
                     if (inputGolongan.equals(cmdKembali)) {
                         trxBatal = true;
                     } else if (inputGolongan.equals("1")) {
-                        idxGolongan = 0;
+                        namaGolongan = "900 VA Subsidi";
+                        tarifKwh = tarifSubsidi;
+                        golonganValid = true;
                     } else if (inputGolongan.equals("2")) {
-                        idxGolongan = 1;
+                        namaGolongan = "900 VA RTM";
+                        tarifKwh = tarifRtm;
+                        golonganValid = true;
                     } else {
                         System.out.println("Golongan tidak valid.");
                     }
                 }
 
                 // ----- Langkah 4: nominal token -----
-                // Menyimpan indeks nominal (0 sampai 3).
-                // Nilai -1 berarti nominal belum dipilih.
-                int idxNominal = -1;
-                while (!trxBatal && idxNominal < 0) {
+                // Nilai 0 berarti nominal belum dipilih. Perulangan berhenti
+                // setelah nominal terisi dengan salah satu dari empat pilihan.
+                int nominal = 0;
+                while (!trxBatal && nominal == 0) {
                     System.out.print("""
 
                             Pilih nominal token:
@@ -154,23 +154,23 @@ public class TuBes_TheLastStar_DDP2026 {
                     String inputNominal = input.nextLine().trim();
                     if (inputNominal.equals(cmdKembali)) {
                         trxBatal = true;
-                        // Input harus persis 1 digit diantara angka 1-4, selain itu otomatis masuk kondisi 'else'
-                    } else if (inputNominal.matches("[1-4]")) {
-                        // Pilihan menu dimulai dari 1, sedangkan indeks array dari 0.
-                        idxNominal = Integer.parseInt(inputNominal) - 1;
+                    } else if (inputNominal.equals("1")) {
+                        nominal = 20000;
+                    } else if (inputNominal.equals("2")) {
+                        nominal = 50000;
+                    } else if (inputNominal.equals("3")) {
+                        nominal = 100000;
+                    } else if (inputNominal.equals("4")) {
+                        nominal = 200000;
                     } else {
                         System.out.println("Nominal tidak valid.");
                     }
                 }
 
                 // ----- Langkah 5 dan seterusnya: hanya jalan jika belum dibatalkan -----
-                // Pengecekan ini juga mencegah error indeks array (misalnya
-                // tarifGolongan[-1]) ketika pengguna membatalkan lebih awal.
+                // Pengecekan ini mencegah perhitungan memakai data yang belum lengkap
+                // (misalnya tarifKwh yang masih 0) ketika pengguna membatalkan lebih awal.
                 if (!trxBatal) {
-                    // Ambil data sesuai pilihan pengguna.
-                    int tarifKwh = tarifGolongan[idxGolongan];
-                    int nominal = daftarNominal[idxNominal];
-
                     // Total bayar adalah nominal ditambah biaya admin.
                     int totalBayar = nominal + biayaAdm;
 
@@ -187,22 +187,21 @@ public class TuBes_TheLastStar_DDP2026 {
                             Nominal     : %d
                             Admin       : %d
                             Total Bayar : %d
-                            """, namaGolongan[idxGolongan], tarifKwh, nominal,
-                            biayaAdm, totalBayar);
+                            """, namaGolongan, tarifKwh, nominal, biayaAdm, totalBayar);
 
                     // ----- Langkah pembayaran -----
                     // Diulang sampai uang yang dibayar cukup, atau pengguna membatalkan.
-                    // Input harus berupa angka 1 sampai 9 digit agar tidak melebihi
-                    // batas tipe int.
+                    // Pola \d{1,9} berarti input hanya boleh berisi angka 0 sampai 9
+                    // dengan panjang 1 sampai 9 digit. Batas 9 digit dipakai karena int
+                    // punya batas maksimal sekitar 2,1 miliar. Jika angka melebihi itu,
+                    // program akan error. Angka 9 digit terbesar adalah 999.999.999
+                    // sehingga aman.
                     int uangBayar = 0;
                     while (!trxBatal && uangBayar < totalBayar) {
                         System.out.print("\nMasukkan uang dibayar (0 = kembali): ");
                         String inputUang = input.nextLine().trim();
                         if (inputUang.equals(cmdKembali)) {
                             trxBatal = true;
-                            // d{1,9} adalah pembatas agar input hanya berupa angka 0-9 dengan panjang digit 1 sampai 9
-                            // kenapa 9 digit? karena int punya batas max sekitar 2,1 milyar, kalau kita masukkan angka lebih dari itu,
-                            // program akan error. 9 digit angka terbesar adalah 999.999.999, tidak akan error.
                         } else if (!inputUang.matches("\\d{1,9}")) {
                             System.out.println("Uang harus berupa angka.");
                         } else {
@@ -218,7 +217,6 @@ public class TuBes_TheLastStar_DDP2026 {
                         int kembalian = uangBayar - totalBayar;
 
                         // Buat token acak 20 digit dengan format xxxx-xxxx-xxxx-xxxx-xxxx.
-                        // Test : XXXX-XXXX-XXXX-XXXX
                         // Setiap digit berasal dari Math.random() dikali 10 lalu dibuang
                         // desimalnya, sehingga hasilnya 0 sampai 9. Tanda "-" disisipkan
                         // setelah digit ke-4, 8, 12, dan 16.
@@ -245,7 +243,7 @@ public class TuBes_TheLastStar_DDP2026 {
                                 kWh         : %s
                                 Token       : %s
                                 ===================================
-                                """, namaPelanggan, noMeter, namaGolongan[idxGolongan],
+                                """, namaPelanggan, noMeter, namaGolongan,
                                 tarifKwh, nominal, biayaAdm, totalBayar, uangBayar,
                                 kembalian, kwhTeks, token);
 
@@ -272,8 +270,8 @@ public class TuBes_TheLastStar_DDP2026 {
                 if (jmlToken == 0) {
                     System.out.println("Belum ada token.");
                 }
-                for (int idxToken = 0; idxToken < jmlToken; idxToken++) {
-                    System.out.println((idxToken + 1) + ". " + daftarToken[idxToken]);
+                for (int i = 0; i < jmlToken; i++) {
+                    System.out.println((i + 1) + ". " + daftarToken[i]);
                 }
                 System.out.println("============================");
             }
